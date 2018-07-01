@@ -5,12 +5,13 @@ File used for models, loss functions, and custom layers
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
+import bcolz
 
 def geometric_unit(pred_coords, pred_torsions, bond_angles, bond_lens):
     for i in range(3):
         #coordinates of last three atoms
         A, B, C = pred_coords[-3], pred_coords[-2], pred_coords[-1]
-
+        
         #internal coordinates
         T = bond_angles[i]
         R = bond_lens[i]
@@ -21,14 +22,14 @@ def geometric_unit(pred_coords, pred_torsions, bond_angles, bond_lens):
                           R*torch.cos(P)*torch.sin(T),
                           R*torch.sin(P)*torch.sin(T)], dim=1)
 
-        #6x3 one triplet for each sample in the batch
+        #bsx3 one triplet for each sample in the batch
         BC = C - B
-        bc = BC/torch.norm(BC, 2)
+        bc = BC/torch.norm(BC, 2, dim=1, keepdim=True)
 
         AB = B - A
 
         N = torch.cross(AB, bc)
-        n = N/torch.norm(N, 2)
+        n = N/torch.norm(N, 2, dim=1, keepdim=True)
 
         M = torch.stack([bc, torch.cross(n, bc), n], dim=2)
 
@@ -91,3 +92,11 @@ class dRMSD(nn.Module):
             dRMSD += torch.norm(D, 2)/(((x.size(1)**2)/2 - x.size(1))**0.5)
             
         return dRMSD/x.size(0) #average over the batch
+    
+def create_emb_layer(aa2vec_path):
+    aa2vec = torch.tensor(bcolz.open(aa2vec_path), requires_grad=True)
+    vocab_sz, embed_dim = aa2vec.size()
+    emb_layer = nn.Embedding(vocab_sz, embed_dim)
+    emb_layer.load_state_dict({'weight': aa2vec})
+
+    return emb_layer, vocab_sz, embed_dim

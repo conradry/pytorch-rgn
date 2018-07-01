@@ -205,3 +205,33 @@ def gt_dihedral_angles(pdb_file_path):
                                 torch.tensor(ca_c)], dim=1)
         
     return torsional_angles, bond_angles, bond_lengths
+
+def subset(array_path, max_len, min_len=0, save_path=None):
+    """Return a subset of a bcolz array based on max and min lengths
+    array_path: path to the bcolz array
+    max_len: maximum length of sequences to include in subset
+    min_len: Default 0, minimum length of sequences to include in subset
+    save_path: Default None, path to save subset array
+    """
+    a = bcolz.carray(rootdir=array_path)
+    
+    shix = []
+    for ix in range(len(a)):
+        name, sequence, coords = a[ix]
+        length = len(sequence[0])
+        if (length >= min_len) and (length <= max_len):
+            shix.append(ix)
+    
+    if save_path:
+        subset = bcolz.carray(a[shix], rootdir=save_path, mode='w')
+        subset.flush()
+        return subset
+    
+    return a[shix]
+
+def save_array(fname, arr):
+    c=bcolz.carray(arr, rootdir=fname, mode='w')
+    c.flush()
+
+def load_array(fname):
+    return bcolz.open(fname)[:]
