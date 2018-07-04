@@ -10,11 +10,6 @@ from PIL import Image
 import Bio.PDB as bio
 import scipy
 import torch
-#import torch
-#from torch.autograd import Variable
-#import torch.nn as nn
-#import torch.nn.functional as F
-#from torch.utils.data import Dataset
 from keras.utils.np_utils import to_categorical
 
 residue_letter_codes = {'GLY': 'G','PRO': 'P','ALA': 'A','VAL': 'V','LEU': 'L',
@@ -27,13 +22,6 @@ aa2ix= {'G': 0,'P': 1,'A': 2,'V': 3,'L': 4,
           'W': 10,'H': 11,'K': 12,'R': 13,'Q': 14,
           'N': 15,'E': 16,'D': 17,'S': 18,'T': 19}
 
-def save_array(fname, arr):
-    c=bcolz.carray(arr, rootdir=fname, mode='w')
-    c.flush()
-
-def load_array(fname):
-    return bcolz.open(fname)[:]
-    
 #get sequences and corresponding chain ids
 def gather_sequence(pdb_id, seq_file):
     seqs=[]
@@ -104,7 +92,7 @@ def encode_sequence(sequence, onehot=True):
     
     return np.uint8(vec)
 
-def parse_pdb(pdb_file, residue_letter_codes):
+def parse_pdb(pdb_file):
     #pdb_file = 'pdb5l6t.ent' #np.random.choice(pdb_list)
     p = bio.PDBParser()
     s = p.get_structure('X', pdb_path+pdb_file)
@@ -207,7 +195,7 @@ def gt_dihedral_angles(pdb_file_path):
     return torsional_angles, bond_angles, bond_lengths
 
 def subset(array_path, max_len, min_len=0, save_path=None):
-    """Return a subset of a bcolz array based on max and min lengths
+    """Return a subset of a bcolz array based on max and min lengths of sequences
     array_path: path to the bcolz array
     max_len: maximum length of sequences to include in subset
     min_len: Default 0, minimum length of sequences to include in subset

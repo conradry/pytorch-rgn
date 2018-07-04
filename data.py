@@ -104,15 +104,15 @@ def sequence_collate(batch):
     raise TypeError((error_msg.format(type(batch[0]))))
 
 class ProteinDataset(Dataset):
-    def __init__(self, data_path, protein_chains, encoding):
+    def __init__(self, bcolz_path, encoding, indices=None):
         """encoding has 3 states, None, onehot, and tokens"""
-        self.data_path = data_path
-        self.protein_chains = protein_chains # integer string i.e. '1'
         self.encoding = encoding
         #TODO: in the future, when using multiple different protein chain lengths
         #try using pytorch ConcatDataset class
-        self.data_array = bcolz.carray(rootdir=self.data_path+
-                                       'proteins_{}.bc'.format(self.protein_chains))
+        if indices is None:
+            self.data_array = bcolz.carray(rootdir=bcolz_path)
+        else:
+            self.data_array = bcolz.carray(rootdir=bcolz_path)[indices]
     
     def __len__(self):
         return len(self.data_array)
@@ -132,6 +132,29 @@ class ProteinDataset(Dataset):
                   'sequence': sequence_vec,
                   'coords': coords,
                   'length': length}
+                                    
+        return sample
+    
+class ProteinNet(Dataset):
+    def __init__(self, bcolz_path):
+        self.data_array = bcolz.carray(rootdir=bcolz_path)
+    
+    def __len__(self):
+        return len(self.data_array)
+    
+    def __getitem__(self, idx):
+        
+        name, sequence, pssm, coords, mask = self.data_array[idx]
+        length = len(sequence)
+        sequence_vec = utils.encode_sequence(sequence, onehot=True)
+        seq_pssm = np.concatenate([sequence_vec, pssm], axis=1)
+            
+        sample = {'name': name,
+                  'sequence': seq_pssm,
+                  'coords': coords,
+                  'length': length,
+                  'mask': mask
+                 }
                                     
         return sample
     
