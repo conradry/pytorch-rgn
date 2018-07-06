@@ -137,7 +137,7 @@ class ProteinDataset(Dataset):
     
 class ProteinNet(Dataset):
     def __init__(self, bcolz_path):
-        self.data_array = bcolz.carray(rootdir=bcolz_path)
+        self.data_array = bcolz.carray(rootdir=bcolz_path)[:160]
     
     def __len__(self):
         return len(self.data_array)

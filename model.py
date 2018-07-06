@@ -74,22 +74,25 @@ class dRMSD(nn.Module):
     def __init__(self):
         super(dRMSD, self).__init__()
 
-    def forward(self, x, y):
+    def forward(self, x, y, mask):
         #put batch on the first dimension
         x = x.permute(dims=(1,0,2))
         y = y.permute(dims=(1,0,2))
+        mask = mask.permute(dims=(1,0))
         
         dRMSD = torch.tensor([0.])
         for i in range(x.size(0)):
             #3 to exclude random first 3 coords
             #get indices where coordinates are not [0.,0.,0.]
             #sum across row for accurate results, there may be a more efficient way?
-            idx = torch.tensor([p for p,co in enumerate(y[i]) if co.sum() != 0], dtype=torch.long)
+            #idx = torch.tensor([p for p,co in enumerate(y[i]) if co.sum() != 0], dtype=torch.long)
+            idx = torch.tensor(mask[i][mask[i] != 0], dtype=torch.long)
+            #print(idx.size())
             xdist_mat = pair_dist(torch.index_select(x[i], 0, idx))
             ydist_mat = pair_dist(torch.index_select(y[i], 0, idx))
             
             D = ydist_mat - xdist_mat
-            dRMSD += torch.norm(D, 2)/(((x.size(1)**2)/2 - x.size(1))**0.5)
+            dRMSD += torch.norm(D, 2)/((idx.size(0)**2 - idx.size(0))**0.5)
             
         return dRMSD/x.size(0) #average over the batch
     
